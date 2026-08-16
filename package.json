@@ -11,6 +11,7 @@
     "tail": "wrangler tail",
     "test": "node --test tests/**/*.test.js",
     "test:watch": "node --test --watch tests/**/*.test.js",
+    "generate-env": "node scripts/generate-env.js",
     "lint": "echo 'No linter configured yet'"
   },
   "devDependencies": {
