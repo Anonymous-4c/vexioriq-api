@@ -1,0 +1,11 @@
+# Vexioriq API — Local Development Environment Variables
+# Copy this file to .dev.vars and fill in real values.
+
+# HMAC secret used for API key hashing (generate a strong random string)
+API_KEY_HMAC_SECRET=
+
+# Internal sync secret for Vercel -> API key registration (generate a strong random string)
+INTERNAL_SYNC_SECRET=
+
+# CORS origins (comma-separated, or leave empty for dev defaults)
+CORS_ORIGINS=http://localhost:3000,https://vexioriq.com
