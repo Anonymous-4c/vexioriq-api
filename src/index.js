@@ -7,7 +7,7 @@ import { rateLimitMiddleware } from './middleware/rateLimit.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { generateRequestId } from './utils/ids.js';
 import { ApiError } from './utils/errors.js';
-import { errorResponse, jsonResponse } from './utils/response.js';
+import { jsonResponse } from './utils/response.js';
 
 import './tools/index.js';
 
@@ -20,117 +20,166 @@ const API_TESTER_HTML = `<!DOCTYPE html>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Vexioriq API Tester</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-:root{--bg:#0a0a0f;--surface:#12121a;--border:#1e1e2e;--text:#e4e4e7;--muted:#71717a;--accent:#6d5dfc;--green:#22c55e;--red:#ef4444;--yellow:#eab308;--blue:#3b82f6;--radius:8px;--font:system-ui,-apple-system,sans-serif;--mono:'SF Mono',SFMono-Regular,Consolas,monospace}
-body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:100vh}
-.header{padding:20px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:16px}
-.header h1{font-size:18px;font-weight:600}
-.header span{color:var(--accent);font-weight:700}
-.badge{font-size:11px;padding:2px 8px;border-radius:20px;background:var(--accent);color:#fff;font-weight:600}
-.container{display:grid;grid-template-columns:320px 1fr;height:calc(100vh - 65px)}
-.sidebar{border-right:1px solid var(--border);overflow-y:auto;padding:16px}
+:root{
+  --bg:#171717;--bg-el:#1B1B1B;--bg-card:#222222;--bg-over:#2A2A2A;
+  --border:#343434;--border-sub:rgba(190,190,190,0.10);--border-str:rgba(190,190,190,0.20);
+  --t1:#F2F2F2;--t2:#E5E5E5;--t3:#9B9B9C;--t4:#717078;
+  --accent:#BEBEBE;--accent-d:rgba(190,190,190,0.08);
+  --ok:#6FAF82;--ok-d:rgba(111,175,130,0.15);--ok-b:rgba(111,175,130,0.30);
+  --err:#C96B6B;--err-d:rgba(201,107,107,0.15);--err-b:rgba(201,107,107,0.30);
+  --warn:#C4A45D;--warn-d:rgba(196,164,93,0.15);--warn-b:rgba(196,164,93,0.30);
+  --info:#8297B5;--info-d:rgba(130,151,181,0.15);--info-b:rgba(130,151,181,0.30);
+  --sans:'Inter',system-ui,-apple-system,sans-serif;
+  --mono:'JetBrains Mono','Fira Code',ui-monospace,monospace;
+  --r-sm:6px;--r-md:8px;--r-lg:12px;--r-xl:16px;--r-full:9999px;
+}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--t1);font-family:var(--sans);min-height:100vh;-webkit-font-smoothing:antialiased}
+::selection{background:rgba(190,190,190,0.2);color:var(--t1)}
+::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:var(--r-full)}
+::-webkit-scrollbar-thumb:hover{background:#404040}
+
+.hd{padding:16px 24px;border-bottom:1px solid var(--border-sub);display:flex;align-items:center;gap:14px;background:var(--bg-el);backdrop-filter:blur(20px)}
+.hd .logo{font-size:15px;font-weight:800;letter-spacing:-0.02em;color:var(--t1)}
+.hd h1{font-size:15px;font-weight:500;color:var(--t3)}
+.hd .sep{color:var(--border);font-weight:300}
+.badge{font-size:10px;padding:3px 10px;border-radius:var(--r-full);background:var(--accent-d);border:1px solid var(--border-sub);color:var(--accent);font-weight:600;letter-spacing:0.05em;text-transform:uppercase}
+
+.wrap{display:grid;grid-template-columns:300px 1fr;height:calc(100vh - 57px)}
+.side{border-right:1px solid var(--border-sub);overflow-y:auto;padding:16px;background:var(--bg-el)}
 .main{overflow-y:auto;padding:24px;display:flex;flex-direction:column;gap:20px}
-.section-title{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:10px;font-weight:600}
-.preset{padding:10px 12px;border-radius:var(--radius);cursor:pointer;margin-bottom:4px;display:flex;align-items:center;gap:10px;transition:background .15s;border:1px solid transparent;font-size:13px}
-.preset:hover{background:var(--surface);border-color:var(--border)}
-.preset.active{background:var(--surface);border-color:var(--accent)}
-.method-badge{font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px;font-family:var(--mono);min-width:38px;text-align:center}
-.method-GET{background:#22c55e22;color:var(--green)}.method-POST{background:#3b82f622;color:var(--blue)}.method-PUT{background:#eab30822;color:var(--yellow)}.method-DELETE{background:#ef444422;color:var(--red)}
-.request-bar{display:flex;gap:10px;align-items:stretch}
-.method-select{background:var(--surface);color:var(--green);border:1px solid var(--border);border-radius:var(--radius);padding:0 12px;font-family:var(--mono);font-size:13px;font-weight:600;cursor:pointer;appearance:none;min-width:80px;text-align:center}
-.url-input{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:10px 14px;color:var(--text);font-family:var(--mono);font-size:13px;outline:none;transition:border-color .15s}
-.url-input:focus{border-color:var(--accent)}
-.send-btn{background:var(--accent);color:#fff;border:none;border-radius:var(--radius);padding:10px 24px;font-weight:600;font-size:13px;cursor:pointer;transition:opacity .15s;white-space:nowrap}
-.send-btn:hover{opacity:.9}.send-btn:disabled{opacity:.5;cursor:not-allowed}.send-btn.loading{color:transparent}
-.tabs{display:flex;gap:0;border-bottom:1px solid var(--border)}
-.tab{padding:8px 16px;font-size:12px;font-weight:600;cursor:pointer;color:var(--muted);border-bottom:2px solid transparent;transition:all .15s}
-.tab:hover{color:var(--text)}.tab.active{color:var(--accent);border-bottom-color:var(--accent)}
-.panel{display:none}.panel.active{display:block}
-.response-meta{display:flex;gap:16px;align-items:center;flex-wrap:wrap}
-.status{font-family:var(--mono);font-size:13px;font-weight:700;padding:4px 10px;border-radius:var(--radius)}
-.status-2xx{background:#22c55e22;color:var(--green)}.status-3xx{background:#eab30822;color:var(--yellow)}.status-4xx{background:#ef444422;color:var(--red)}.status-5xx{background:#ef444422;color:var(--red)}
-.meta-item{font-size:12px;color:var(--muted)}.meta-item strong{color:var(--text)}
-.code-block{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;font-family:var(--mono);font-size:12px;line-height:1.6;overflow-x:auto;white-space:pre-wrap;word-break:break-all;max-height:500px;overflow-y:auto;color:var(--muted)}
-.code-block .key{color:var(--accent)}.code-block .str{color:var(--green)}.code-block .num{color:var(--yellow)}.code-block .bool{color:var(--blue)}
-.headers-table{width:100%;border-collapse:collapse;font-size:12px}
-.headers-table th{text-align:left;padding:8px 12px;color:var(--muted);font-weight:600;border-bottom:1px solid var(--border)}
-.headers-table td{padding:8px 12px;border-bottom:1px solid var(--border);font-family:var(--mono);font-size:11px}
-.headers-table td:first-child{color:var(--accent);white-space:nowrap}
-.config-row{display:flex;gap:12px;margin-bottom:12px;align-items:center}
-.config-label{font-size:12px;color:var(--muted);min-width:80px}
-.config-input{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:8px 12px;color:var(--text);font-family:var(--mono);font-size:12px;outline:none}
-.config-input:focus{border-color:var(--accent)}
-.empty-state{text-align:center;padding:60px 20px;color:var(--muted)}.empty-state p{margin-top:8px;font-size:13px}
-.history-item{padding:8px 12px;border-radius:var(--radius);cursor:pointer;margin-bottom:4px;font-size:12px;display:flex;align-items:center;gap:8px;transition:background .15s}
-.history-item:hover{background:var(--surface)}
-.history-time{color:var(--muted);font-size:10px;margin-left:auto;white-space:nowrap}
-@media(max-width:768px){.container{grid-template-columns:1fr}.sidebar{display:none}}
+
+.slbl{font-size:10px;text-transform:uppercase;letter-spacing:0.1em;color:var(--t4);margin-bottom:8px;font-weight:600;padding:0 4px}
+.pr{padding:8px 10px;border-radius:var(--r-md);cursor:pointer;margin-bottom:2px;display:flex;align-items:center;gap:8px;transition:all 150ms;border:1px solid transparent;font-size:12px;color:var(--t2)}
+.pr:hover{background:var(--accent-d);border-color:var(--border-sub);color:var(--t1)}
+.pr.on{background:var(--accent-d);border-color:var(--border-str);color:var(--t1)}
+.mb{font-size:9px;font-weight:700;padding:2px 6px;border-radius:var(--r-sm);font-family:var(--mono);min-width:34px;text-align:center;letter-spacing:0.02em}
+.mg{background:var(--ok-d);color:var(--ok);border:1px solid rgba(111,175,130,0.20)}
+.mp{background:var(--info-d);color:var(--info);border:1px solid rgba(130,151,181,0.20)}
+.mu{background:var(--warn-d);color:var(--warn);border:1px solid rgba(196,164,93,0.20)}
+.md{background:var(--err-d);color:var(--err);border:1px solid rgba(201,107,107,0.20)}
+.pp{font-family:var(--mono);font-size:11px;color:var(--t4)}
+
+.rbar{display:flex;gap:8px;align-items:stretch}
+.msel{background:var(--bg-card);color:var(--ok);border:1px solid var(--border);border-radius:var(--r-md);padding:0 12px;font-family:var(--mono);font-size:12px;font-weight:600;cursor:pointer;appearance:none;min-width:72px;text-align:center;outline:none;transition:border-color 150ms}
+.msel:focus{border-color:var(--accent)}
+.uinp{flex:1;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-md);padding:10px 14px;color:var(--t1);font-family:var(--mono);font-size:12px;outline:none;transition:border-color 150ms}
+.uinp:focus{border-color:var(--accent)}
+.uinp::placeholder{color:var(--t4)}
+.sbtn{background:var(--t1);color:var(--bg);border:none;border-radius:var(--r-md);padding:10px 20px;font-weight:600;font-size:12px;font-family:var(--sans);cursor:pointer;transition:all 150ms;white-space:nowrap;letter-spacing:0.01em}
+.sbtn:hover{opacity:0.9;box-shadow:0 0 20px rgba(190,190,190,0.08)}
+.sbtn:active{transform:scale(0.98)}
+.sbtn:disabled{opacity:0.4;cursor:not-allowed;transform:none}
+.sbtn.ld{color:transparent;pointer-events:none}
+
+.bedit{width:100%;min-height:100px;background:var(--bg);border:1px solid var(--border);border-radius:var(--r-lg);padding:14px;color:var(--t2);font-family:var(--mono);font-size:12px;line-height:1.7;resize:vertical;outline:none;transition:border-color 150ms;tab-size:2}
+.bedit:focus{border-color:var(--accent)}
+.bedit::placeholder{color:var(--t4);opacity:0.5}
+
+.tabs{display:flex;gap:0;border-bottom:1px solid var(--border-sub)}
+.tab{padding:8px 14px;font-size:11px;font-weight:600;cursor:pointer;color:var(--t4);border-bottom:2px solid transparent;transition:all 150ms;letter-spacing:0.02em}
+.tab:hover{color:var(--t3)}
+.tab.on{color:var(--t1);border-bottom-color:var(--accent)}
+
+.pnl{display:none}.pnl.on{display:block}
+
+.rsp{display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding:12px 14px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg)}
+.spill{font-family:var(--mono);font-size:12px;font-weight:700;padding:4px 12px;border-radius:var(--r-full)}
+.s2{background:var(--ok-d);color:var(--ok);border:1px solid var(--ok-b)}
+.s3{background:var(--warn-d);color:var(--warn);border:1px solid var(--warn-b)}
+.s4{background:var(--err-d);color:var(--err);border:1px solid var(--err-b)}
+.s5{background:var(--err-d);color:var(--err);border:1px solid var(--err-b)}
+.mpill{font-size:11px;color:var(--t4);font-family:var(--mono)}
+.mpill strong{color:var(--t3)}
+
+.cblk{background:var(--bg);border:1px solid var(--border);border-radius:var(--r-lg);padding:16px;font-family:var(--mono);font-size:11px;line-height:1.8;overflow-x:auto;white-space:pre-wrap;word-break:break-all;max-height:480px;overflow-y:auto;color:var(--t3)}
+.cblk .k{color:var(--info)}.cblk .s{color:#A8D4A0}.cblk .n{color:#E0A87E}.cblk .b{color:var(--warn)}
+
+.htbl{width:100%;border-collapse:collapse;font-size:11px}
+.htbl th{text-align:left;padding:8px 12px;color:var(--t4);font-weight:600;border-bottom:1px solid var(--border-sub);font-size:10px;text-transform:uppercase;letter-spacing:0.08em}
+.htbl td{padding:7px 12px;border-bottom:1px solid var(--border-sub);font-family:var(--mono);font-size:10px;color:var(--t3)}
+.htbl td:first-child{color:var(--info);white-space:nowrap}
+
+.crow{display:flex;gap:8px;margin-bottom:8px;align-items:center}
+.clbl{font-size:10px;color:var(--t4);min-width:70px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em}
+.cinp{flex:1;background:var(--bg);border:1px solid var(--border);border-radius:var(--r-md);padding:7px 10px;color:var(--t2);font-family:var(--mono);font-size:11px;outline:none;transition:border-color 150ms}
+.cinp:focus{border-color:var(--accent)}
+.cinp::placeholder{color:var(--t4);opacity:0.5}
+
+.emp{text-align:center;padding:60px 20px;color:var(--t4)}
+.emp .ico{font-size:20px;margin-bottom:8px;opacity:0.4}
+.emp p{font-size:12px;letter-spacing:0.02em}
+
+.hi{padding:6px 8px;border-radius:var(--r-md);cursor:pointer;margin-bottom:2px;font-size:11px;display:flex;align-items:center;gap:6px;transition:all 150ms;color:var(--t4)}
+.hi:hover{background:var(--accent-d);color:var(--t3)}
+.ht{font-size:9px;margin-left:auto;white-space:nowrap;opacity:0.5}
+
+.dv{height:1px;background:linear-gradient(90deg,transparent,var(--border-sub),transparent);margin:16px 0}
+
+@media(max-width:768px){.wrap{grid-template-columns:1fr}.side{display:none}}
 </style>
 </head>
 <body>
-<div class="header"><span>VEXIORIQ</span><h1>API Tester</h1><span class="badge">v1</span></div>
-<div class="container">
-<div class="sidebar">
-<div class="section-title">Configuration</div>
-<div class="config-row"><span class="config-label">Base URL</span><input class="config-input" id="baseUrl" value="" placeholder="https://your-worker.workers.dev" spellcheck="false"></div>
-<div class="config-row"><span class="config-label">API Key</span><input class="config-input" id="apiKey" type="password" placeholder="vxr_..." spellcheck="false"></div>
-<div style="margin-top:20px"><div class="section-title">Quick Endpoints</div>
-<div class="preset active" data-method="GET" data-path="/v1/health" onclick="selectPreset(this)"><span class="method-badge method-GET">GET</span><span>/v1/health</span></div>
-<div class="preset" data-method="GET" data-path="/v1/meta" onclick="selectPreset(this)"><span class="method-badge method-GET">GET</span><span>/v1/meta</span></div>
-<div class="preset" data-method="GET" data-path="/v1/tools" onclick="selectPreset(this)"><span class="method-badge method-GET">GET</span><span>/v1/tools</span></div>
-<div class="preset" data-method="GET" data-path="/v1/tools/uuid-generator" onclick="selectPreset(this)"><span class="method-badge method-GET">GET</span><span>/v1/tools/uuid-generator</span></div>
-<div class="preset" data-method="GET" data-path="/v1/tools/hash-generator" onclick="selectPreset(this)"><span class="method-badge method-GET">GET</span><span>/v1/tools/hash-generator</span></div>
-<div class="preset" data-method="GET" data-path="/v1/tools/json-formatter" onclick="selectPreset(this)"><span class="method-badge method-GET">GET</span><span>/v1/tools/json-formatter</span></div>
-</div>
-<div style="margin-top:20px"><div class="section-title">Tool Execution</div>
-<div class="preset" data-method="POST" data-path="/v1/tools/uuid-generator" data-body='{"count":3}' onclick="selectPreset(this)"><span class="method-badge method-POST">POST</span><span>uuid-generator</span></div>
-<div class="preset" data-method="POST" data-path="/v1/tools/hash-generator" data-body='{"input":"hello world","algorithm":"SHA-256"}' onclick="selectPreset(this)"><span class="method-badge method-POST">POST</span><span>hash-generator</span></div>
-<div class="preset" data-method="POST" data-path="/v1/tools/json-formatter" data-body='{"input":{"name":"vexioriq","version":1},"mode":"format","indent":2}' onclick="selectPreset(this)"><span class="method-badge method-POST">POST</span><span>json-formatter</span></div>
-<div class="preset" data-method="POST" data-path="/v1/tools/base64-encoder" data-body='{"input":"Hello Vexioriq","mode":"encode"}' onclick="selectPreset(this)"><span class="method-badge method-POST">POST</span><span>base64-encoder</span></div>
-<div class="preset" data-method="POST" data-path="/v1/tools/timestamp-converter" data-body='{}' onclick="selectPreset(this)"><span class="method-badge method-POST">POST</span><span>timestamp-converter</span></div>
-</div>
-<div style="margin-top:20px"><div class="section-title">Error Tests</div>
-<div class="preset" data-method="GET" data-path="/v1/nonexistent" onclick="selectPreset(this)"><span class="method-badge method-GET">GET</span><span>404 Test</span></div>
-<div class="preset" data-method="DELETE" data-path="/v1/health" onclick="selectPreset(this)"><span class="method-badge method-DELETE">DEL</span><span>405 Test</span></div>
-<div class="preset" data-method="POST" data-path="/v1/tools/uuid-generator" data-body='bad json' onclick="selectPreset(this)"><span class="method-badge method-POST">POST</span><span>Bad JSON Test</span></div>
-</div>
-<div style="margin-top:20px"><div class="section-title">History</div><div id="history"></div></div>
+<div class="hd"><span class="logo">VEXIORIQ</span><span class="sep">/</span><h1>API Tester</h1><span class="badge">v1</span></div>
+<div class="wrap">
+<div class="side">
+<div class="slbl">Configuration</div>
+<div class="crow"><span class="clbl">Base</span><input class="cinp" id="baseUrl" placeholder="https://your-worker.workers.dev" spellcheck="false"></div>
+<div class="crow"><span class="clbl">Key</span><input class="cinp" id="apiKey" type="password" placeholder="vxr_..." spellcheck="false"></div>
+<div class="dv"></div><div class="slbl">Endpoints</div>
+<div class="pr on" data-m="GET" data-p="/v1/health" onclick="sel(this)"><span class="mb mg">GET</span><span class="pp">/v1/health</span></div>
+<div class="pr" data-m="GET" data-p="/v1/meta" onclick="sel(this)"><span class="mb mg">GET</span><span class="pp">/v1/meta</span></div>
+<div class="pr" data-m="GET" data-p="/v1/tools" onclick="sel(this)"><span class="mb mg">GET</span><span class="pp">/v1/tools</span></div>
+<div class="pr" data-m="GET" data-p="/v1/tools/uuid-generator" onclick="sel(this)"><span class="mb mg">GET</span><span class="pp">/v1/tools/uuid-generator</span></div>
+<div class="pr" data-m="GET" data-p="/v1/tools/hash-generator" onclick="sel(this)"><span class="mb mg">GET</span><span class="pp">/v1/tools/hash-generator</span></div>
+<div class="pr" data-m="GET" data-p="/v1/tools/json-formatter" onclick="sel(this)"><span class="mb mg">GET</span><span class="pp">/v1/tools/json-formatter</span></div>
+<div class="dv"></div><div class="slbl">Execute</div>
+<div class="pr" data-m="POST" data-p="/v1/tools/uuid-generator" data-b='{"count":3}' onclick="sel(this)"><span class="mb mp">POST</span><span>uuid-generator</span></div>
+<div class="pr" data-m="POST" data-p="/v1/tools/hash-generator" data-b='{"input":"hello world","algorithm":"SHA-256"}' onclick="sel(this)"><span class="mb mp">POST</span><span>hash-generator</span></div>
+<div class="pr" data-m="POST" data-p="/v1/tools/json-formatter" data-b='{"input":{"name":"vexioriq"},"mode":"format","indent":2}' onclick="sel(this)"><span class="mb mp">POST</span><span>json-formatter</span></div>
+<div class="pr" data-m="POST" data-p="/v1/tools/base64-encoder" data-b='{"input":"Hello Vexioriq","mode":"encode"}' onclick="sel(this)"><span class="mb mp">POST</span><span>base64-encoder</span></div>
+<div class="pr" data-m="POST" data-p="/v1/tools/timestamp-converter" data-b='{}' onclick="sel(this)"><span class="mb mp">POST</span><span>timestamp-converter</span></div>
+<div class="dv"></div><div class="slbl">Errors</div>
+<div class="pr" data-m="GET" data-p="/v1/nonexistent" onclick="sel(this)"><span class="mb mg">GET</span><span>404 Test</span></div>
+<div class="pr" data-m="DELETE" data-p="/v1/health" onclick="sel(this)"><span class="mb md">DEL</span><span>405 Test</span></div>
+<div class="pr" data-m="POST" data-p="/v1/tools/uuid-generator" data-b='bad json' onclick="sel(this)"><span class="mb mp">POST</span><span>Bad JSON</span></div>
+<div class="dv"></div><div class="slbl">History</div><div id="hist"></div>
 </div>
 <div class="main">
-<div class="request-bar">
-<select class="method-select" id="method" onchange="updateMethodColor()"><option value="GET">GET</option><option value="POST">POST</option><option value="PUT">PUT</option><option value="PATCH">PATCH</option><option value="DELETE">DELETE</option></select>
-<input class="url-input" id="url" value="/v1/health" spellcheck="false" onkeydown="if(event.key==='Enter')sendRequest()">
-<button class="send-btn" id="sendBtn" onclick="sendRequest()">Send</button>
+<div class="rbar">
+<select class="msel" id="method" onchange="uc()"><option value="GET">GET</option><option value="POST">POST</option><option value="PUT">PUT</option><option value="PATCH">PATCH</option><option value="DELETE">DELETE</option></select>
+<input class="uinp" id="url" value="/v1/health" spellcheck="false" onkeydown="if(event.key==='Enter')go()">
+<button class="sbtn" id="sendBtn" onclick="go()">Send</button>
 </div>
-<div id="bodySection" style="display:none"><div class="tabs"><div class="tab active" onclick="switchTab(this,'body')">Body</div></div>
-<textarea id="body" style="width:100%;height:120px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px;color:var(--text);font-family:var(--mono);font-size:12px;resize:vertical;outline:none;margin-top:8px" spellcheck="false" placeholder='{"key":"value"}'></textarea></div>
-<div id="responseSection">
-<div class="empty-state" id="emptyState"><p style="font-size:24px;margin-bottom:4px">&#8593;</p><p>Send a request to see the response</p></div>
-<div id="responseContent" style="display:none">
-<div class="response-meta" id="responseMeta"></div>
-<div class="tabs" style="margin-top:12px"><div class="tab active" onclick="switchResponseTab(this,'response')">Response</div><div class="tab" onclick="switchResponseTab(this,'respHeaders')">Headers</div></div>
-<div class="panel active" id="panel-response"><div class="code-block" id="responseBody"></div></div>
-<div class="panel" id="panel-respHeaders"><table class="headers-table" id="responseHeaders"></table></div>
-</div>
-</div>
-</div>
-</div>
+<div id="bodySec" style="display:none"><div class="tabs"><div class="tab on">Body</div></div>
+<textarea class="bedit" id="body" spellcheck="false" placeholder='{"key": "value"}'></textarea></div>
+<div id="respSec">
+<div class="emp" id="emp"><div class="ico">&#8593;</div><p>Send a request to see the response</p></div>
+<div id="respCont" style="display:none">
+<div class="rsp" id="rmeta"></div>
+<div class="tabs" style="margin-top:12px"><div class="tab on" onclick="st(this,'rp')">Response</div><div class="tab" onclick="st(this,'hd')">Headers</div></div>
+<div class="pnl on" id="p-rp"><div class="cblk" id="rbody"></div></div>
+<div class="pnl" id="p-hd"><table class="htbl" id="rhdr"></table></div>
+</div></div>
+</div></div>
 <script>
-let history=[];
-function selectPreset(el){document.querySelectorAll('.preset').forEach(p=>p.classList.remove('active'));el.classList.add('active');document.getElementById('method').value=el.dataset.method;document.getElementById('url').value=el.dataset.path;document.getElementById('body').value=el.dataset.body||'';updateMethodColor();updateBodyVisibility()}
-function updateMethodColor(){const sel=document.getElementById('method');const c={GET:'var(--green)',POST:'var(--blue)',PUT:'var(--yellow)',PATCH:'var(--yellow)',DELETE:'var(--red)'};sel.style.color=c[sel.value]||'var(--text)';updateBodyVisibility()}
-function updateBodyVisibility(){document.getElementById('bodySection').style.display=['POST','PUT','PATCH'].includes(document.getElementById('method').value)?'block':'none'}
-function switchTab(el){el.parentElement.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));el.classList.add('active')}
-function switchResponseTab(el,name){el.parentElement.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));el.classList.add('active');document.querySelectorAll('#responseSection .panel').forEach(p=>p.classList.remove('active'));document.getElementById('panel-'+name).classList.add('active')}
-function syntaxHighlight(j){if(typeof j!=='string')j=JSON.stringify(j,null,2);return j.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"([^"]+)"(?=\\s*:)/g,'<span class="key">"$1"</span>').replace(/: "([^"]*)"/g,': <span class="str">"$1"</span>').replace(/: (\\d+\\.?\\d*)/g,': <span class="num">$1</span>').replace(/: (true|false|null)/g,': <span class="bool">$1</span>')}
-async function sendRequest(){const btn=document.getElementById('sendBtn');const method=document.getElementById('method').value;const baseUrl=document.getElementById('baseUrl').value.replace(/\\/+$/,'')||location.origin;const path=document.getElementById('url').value;const apiKey=document.getElementById('apiKey').value;const body=document.getElementById('body').value;const fullUrl=path.startsWith('http')?path:baseUrl+path;const headers={};if(apiKey)headers['Authorization']='Bearer '+apiKey;if(['POST','PUT','PATCH'].includes(method)&&body)headers['Content-Type']='application/json';const opts={method,headers};if(['POST','PUT','PATCH'].includes(method)&&body)opts.body=body;btn.classList.add('loading');btn.disabled=true;const t0=performance.now();try{const res=await fetch(fullUrl,opts);const dur=Math.round(performance.now()-t0);const data=await res.text();let parsed;try{parsed=JSON.parse(data)}catch(e){parsed=null}const sc=res.status<300?'status-2xx':res.status<400?'status-3xx':res.status<500?'status-4xx':'status-5xx';document.getElementById('emptyState').style.display='none';document.getElementById('responseContent').style.display='block';document.getElementById('responseMeta').innerHTML='<span class="status '+sc+'">'+res.status+' '+res.statusText+'</span><span class="meta-item"><strong>'+dur+'ms</strong></span><span class="meta-item">'+data.length+' bytes</span>';document.getElementById('responseBody').innerHTML=parsed?syntaxHighlight(parsed):syntaxHighlight(data);let hh='<tr><th>Header</th><th>Value</th></tr>';res.headers.forEach((v,k)=>{hh+='<tr><td>'+k+'</td><td>'+v+'</td></tr>'});document.getElementById('responseHeaders').innerHTML=hh;addToHistory(method,path,res.status,dur)}catch(err){document.getElementById('emptyState').style.display='none';document.getElementById('responseContent').style.display='block';document.getElementById('responseMeta').innerHTML='<span class="status status-5xx">Error</span>';document.getElementById('responseBody').innerHTML=syntaxHighlight({error:err.message})}finally{btn.classList.remove('loading');btn.disabled=false}}
-function addToHistory(m,p,s,d){history.unshift({method:m,path:p,status:s,duration:d,time:new Date().toLocaleTimeString()});if(history.length>20)history.pop();renderHistory()}
-function renderHistory(){document.getElementById('history').innerHTML=history.map(h=>{const c=h.status<300?'color:var(--green)':h.status<500?'color:var(--yellow)':'color:var(--red)';return '<div class="history-item" onclick="document.getElementById(\\'method\\').value=\\''+h.method+'\\';document.getElementById(\\'url\\').value=\\''+h.path+'\\';updateMethodColor();updateBodyVisibility()"><span class="method-badge method-'+h.method+'" style="font-size:9px;padding:1px 4px">'+h.method+'</span><span style="font-family:var(--mono);font-size:11px">'+h.path+'</span><span style="'+c+';font-family:var(--mono);font-size:11px;font-weight:600">'+h.status+'</span><span class="history-time">'+h.time+'</span></div>'}).join('')}
-updateMethodColor();
+let H=[];
+function sel(e){document.querySelectorAll('.pr').forEach(p=>p.classList.remove('on'));e.classList.add('on');document.getElementById('method').value=e.dataset.m;document.getElementById('url').value=e.dataset.p;document.getElementById('body').value=e.dataset.b||'';uc();ub()}
+function uc(){const s=document.getElementById('method'),c={GET:'var(--ok)',POST:'var(--info)',PUT:'var(--warn)',PATCH:'var(--warn)',DELETE:'var(--err)'};s.style.color=c[s.value]||'var(--t1)';ub()}
+function ub(){document.getElementById('bodySec').style.display=['POST','PUT','PATCH'].includes(document.getElementById('method').value)?'block':'none'}
+function st(e,n){e.parentElement.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));e.classList.add('on');document.querySelectorAll('#respSec .pnl').forEach(p=>p.classList.remove('on'));document.getElementById('p-'+n).classList.add('on')}
+function hl(j){if(typeof j!=='string')j=JSON.stringify(j,null,2);return j.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"([^"]+)"(?=\\s*:)/g,'<span class="k">"$1"</span>').replace(/:\\s*"([^"]*)"/g,': <span class="s">"$1"</span>').replace(/:\\s*(\\d+\\.?\\d*)/g,': <span class="n">$1</span>').replace(/:\\s*(true|false|null)/g,': <span class="b">$1</span>')}
+async function go(){const b=document.getElementById('sendBtn'),m=document.getElementById('method').value,base=document.getElementById('baseUrl').value.replace(/\\/+$/,'')||location.origin,p=document.getElementById('url').value,k=document.getElementById('apiKey').value,body=document.getElementById('body').value,full=p.startsWith('http')?p:base+p;const h={};if(k)h['Authorization']='Bearer '+k;if(['POST','PUT','PATCH'].includes(m)&&body)h['Content-Type']='application/json';const o={method:m,headers:h};if(['POST','PUT','PATCH'].includes(m)&&body)o.body=body;b.classList.add('ld');b.disabled=true;const t0=performance.now();try{const r=await fetch(full,o),d=Math.round(performance.now()-t0),t=await r.text();let j;try{j=JSON.parse(t)}catch(e){j=null}const sc=r.status<300?'s2':r.status<400?'s3':r.status<500?'s4':'s5';document.getElementById('emp').style.display='none';document.getElementById('respCont').style.display='block';document.getElementById('rmeta').innerHTML='<span class="spill '+sc+'">'+r.status+' '+r.statusText+'</span><span class="mpill"><strong>'+d+'ms</strong></span><span class="mpill">'+t.length+' B</span>';document.getElementById('rbody').innerHTML=j?hl(j):hl(t);let hh='<tr><th>Header</th><th>Value</th></tr>';r.headers.forEach((v,k)=>{hh+='<tr><td>'+k+'</td><td>'+v+'</td></tr>'});document.getElementById('rhdr').innerHTML=hh;aH(m,p,r.status,d)}catch(e){document.getElementById('emp').style.display='none';document.getElementById('respCont').style.display='block';document.getElementById('rmeta').innerHTML='<span class="spill s5">Error</span>';document.getElementById('rbody').innerHTML=hl({error:e.message})}finally{b.classList.remove('ld');b.disabled=false}}
+function aH(m,p,s,d){H.unshift({m,p,s,d,t:new Date().toLocaleTimeString()});if(H.length>15)H.pop();rH()}
+function rH(){document.getElementById('hist').innerHTML=H.map(h=>{const c=h.s<300?'var(--ok)':h.s<500?'var(--warn)':'var(--err)';return '<div class="hi" onclick="document.getElementById(\\'method\\').value=\\''+h.m+'\\';document.getElementById(\\'url\\').value=\\''+h.p+'\\';uc();ub()"><span class="mb m'+(h.m==='GET'?'g':h.m==='POST'?'p':h.m==='DELETE'?'d':'u')+'" style="font-size:8px;padding:1px 4px">'+h.m+'</span><span style="font-family:var(--mono);font-size:10px">'+h.p+'</span><span style="color:'+c+';font-family:var(--mono);font-size:10px;font-weight:600">'+h.s+'</span><span class="ht">'+h.t+'</span></div>'}).join('')}
+uc();
 </script>
-</body>
-</html>`;
+</body></html>`;
 
 export default {
   async fetch(request, env, ctx) {
