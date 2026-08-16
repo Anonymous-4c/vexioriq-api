@@ -4,32 +4,6 @@
   "compatibility_date": "2024-12-01",
   "compatibility_flags": ["nodejs_compat"],
 
-  "routes": [
-    {
-      "pattern": "api.vexioriq.com/v1/*",
-      "zone_name": "vexioriq.com"
-    }
-  ],
-
-  "env": {
-    "preview": {
-      "routes": [
-        {
-          "pattern": "preview.api.vexioriq.com/v1/*",
-          "zone_name": "vexioriq.com"
-        }
-      ]
-    },
-    "production": {
-      "routes": [
-        {
-          "pattern": "api.vexioriq.com/v1/*",
-          "zone_name": "vexioriq.com"
-        }
-      ]
-    }
-  },
-
   "observability": {
     "enabled": true
   }

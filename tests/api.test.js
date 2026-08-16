@@ -55,9 +55,11 @@ describe('404 Handling', () => {
     assert.equal(data.error.code, 'NOT_FOUND');
   });
 
-  it('returns 404 for root path', async () => {
+  it('returns API tester HTML for root path', async () => {
     const res = await makeRequest('/');
-    assert.equal(res.status, 404);
+    assert.equal(res.status, 200);
+    const html = await res.text();
+    assert.ok(html.includes('Vexioriq API Tester'));
   });
 });
 
