@@ -27,15 +27,24 @@ export async function authenticationMiddleware(request, env) {
     throw ApiError.forbidden('API key has expired');
   }
 
+  const plan = keyRecord.plan || 'free';
+  const planConfig = config.plans[plan];
+
+  if (!planConfig || !planConfig.apiAccess) {
+    throw ApiError.forbidden(
+      `API access is not available on the ${planConfig?.label || plan} plan. Upgrade to Pro or Business at https://vexioriq.com/dashboard/subscription`
+    );
+  }
+
   return {
     authenticated: true,
-    tier: 'authenticated',
+    tier: plan,
     keyContext: {
       id: keyRecord.id,
       prefix: keyRecord.keyPrefix,
       name: keyRecord.name,
       scopes: keyRecord.scopes || [],
-      plan: keyRecord.plan || 'free',
+      plan,
       createdAt: keyRecord.createdAt,
       lastUsedAt: keyRecord.lastUsedAt,
     },

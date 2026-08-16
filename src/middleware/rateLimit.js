@@ -45,5 +45,6 @@ export function rateLimitMiddleware(identifier, tier = 'anonymous') {
     'X-RateLimit-Limit': String(maxRequests),
     'X-RateLimit-Remaining': String(Math.max(0, maxRequests - entry.count)),
     'X-RateLimit-Reset': String(Math.ceil((entry.windowStart + windowMs) / 1000)),
+    'X-RateLimit-Plan': tier,
   };
 }
