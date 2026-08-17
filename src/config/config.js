@@ -33,15 +33,16 @@ export const config = {
 
   rateLimit: {
     anonymous: { requests: 60, windowSeconds: 60 },
+    free: { requests: 15, windowSeconds: 60 },
     pro: { requests: 300, windowSeconds: 60 },
     business: { requests: 600, windowSeconds: 60 },
     internal: { requests: 1000, windowSeconds: 60 },
   },
 
   plans: {
-    free: { label: 'Free', apiAccess: false },
-    pro: { label: 'Pro', apiAccess: true },
-    business: { label: 'Business', apiAccess: true },
+    free: { label: 'Free', apiAccess: true, maxApiKeys: 1 },
+    pro: { label: 'Pro', apiAccess: true, maxApiKeys: 10 },
+    business: { label: 'Business', apiAccess: true, maxApiKeys: -1 },
   },
 
   apiKey: {

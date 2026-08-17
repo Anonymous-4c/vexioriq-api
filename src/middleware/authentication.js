@@ -28,13 +28,6 @@ export async function authenticationMiddleware(request, env) {
   }
 
   const plan = keyRecord.plan || 'free';
-  const planConfig = config.plans[plan];
-
-  if (!planConfig || !planConfig.apiAccess) {
-    throw ApiError.forbidden(
-      `API access is not available on the ${planConfig?.label || plan} plan. Upgrade to Pro or Business at https://vexioriq.com/dashboard/subscription`
-    );
-  }
 
   return {
     authenticated: true,
