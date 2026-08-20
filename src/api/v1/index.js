@@ -13,6 +13,8 @@ import {
   resourceAccessHandler,
   installationListHandler,
   installationRevokeHandler,
+  listProvidersHandler,
+  syncProviderConfigHandler,
 } from './plugin.js';
 
 export function registerV1Routes(router) {
@@ -33,4 +35,6 @@ export function registerV1Routes(router) {
   router.get('/v1/plugin/resource/:resourceToken', resourceAccessHandler);
   router.get('/v1/plugin/installations', installationListHandler);
   router.post('/v1/plugin/installations/:installationId/revoke', installationRevokeHandler);
+  router.get('/v1/plugin/providers', listProvidersHandler);
+  router.post('/v1/plugin/providers/sync', syncProviderConfigHandler);
 }

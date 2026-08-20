@@ -6,6 +6,7 @@ import { createCredential, revokeCredential, listCredentialsByAccount } from '..
 import { createSession } from '../../plugin/sessions.js';
 import { store } from '../../plugin/storage.js';
 import { PRODUCTS } from '../../plugin/products.js';
+import { AI_PROVIDERS, getProvider } from '../../plugin/providers.js';
 import { auditLog } from '../../plugin/audit.js';
 import { pluginAuth, requireInstallation } from '../../plugin/middleware.js';
 import { pluginRateLimit } from '../../plugin/rateLimit.js';
@@ -338,4 +339,95 @@ export async function installationRevokeHandler(request, env, params, authContex
   await revokeInstallation(installationId);
 
   return successResponse({ revoked: true });
+}
+
+export async function listProvidersHandler(request, env, params, authContext) {
+  pluginRateLimit(request.headers.get('x-forwarded-for') || 'anonymous', 'providers.list');
+
+  const auth = await pluginAuth(request, env);
+  if (auth.type !== 'credential') {
+    throw ApiError.unauthorized('API credential required');
+  }
+
+  const accountId = auth.credential.accountId;
+  const providers = [];
+
+  for (const [providerId, providerDef] of Object.entries(AI_PROVIDERS)) {
+    const configKey = `provider_config:${accountId}:${providerId}`;
+    const savedConfig = await store.providerConfigs?.get(configKey) || null;
+
+    providers.push({
+      id: providerId,
+      name: providerDef.name,
+      configured: !!savedConfig,
+      defaultModel: providerDef.defaultModel,
+      models: providerDef.models,
+      requiredFields: providerDef.requiredFields,
+      optionalFields: providerDef.optionalFields,
+      baseUrl: providerDef.baseUrl,
+    });
+  }
+
+  await auditLog('providers_listed', {
+    accountId,
+    credentialId: auth.credential.id,
+    metadata: { count: providers.length },
+  });
+
+  return successResponse({ providers });
+}
+
+export async function syncProviderConfigHandler(request, env, params, authContext) {
+  pluginRateLimit(request.headers.get('x-forwarded-for') || 'anonymous', 'providers.sync');
+
+  const auth = await pluginAuth(request, env);
+  if (auth.type !== 'credential') {
+    throw ApiError.unauthorized('API credential required');
+  }
+
+  const body = await request.json().catch(() => ({}));
+  const { providerId, config } = body;
+
+  if (!providerId) throw ApiError.badRequest('providerId required');
+
+  const providerDef = getProvider(providerId);
+  if (!providerDef) throw ApiError.badRequest(`Unknown provider: ${providerId}`);
+
+  for (const field of providerDef.requiredFields) {
+    if (!config[field] || typeof config[field] !== 'string' || config[field].trim() === '') {
+      throw ApiError.badRequest(`Missing required field: ${field}`);
+    }
+  }
+
+  const accountId = auth.credential.accountId;
+  const configKey = `provider_config:${accountId}:${providerId}`;
+
+  const providerConfig = {
+    id: configKey,
+    accountId,
+    providerId,
+    apiKey: config.apiKey,
+    model: config.model || providerDef.defaultModel,
+    baseUrl: config.baseUrl || providerDef.baseUrl,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+
+  await store.providerConfigs?.put(configKey, providerConfig);
+
+  await auditLog('provider_configured', {
+    accountId,
+    credentialId: auth.credential.id,
+    metadata: { providerId, model: providerConfig.model },
+  });
+
+  return successResponse({
+    provider: {
+      id: providerId,
+      name: providerDef.name,
+      configured: true,
+      model: providerConfig.model,
+      baseUrl: providerConfig.baseUrl,
+    },
+  }, 201);
 }

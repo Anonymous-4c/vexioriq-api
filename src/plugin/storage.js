@@ -5,6 +5,7 @@ const stores = {
   linkTransactions: new Map(),
   auditLogs: new Map(),
   entitlements: new Map(),
+  providerConfigs: new Map(),
 };
 
 export const store = {
@@ -102,6 +103,27 @@ export const store = {
         if (v.accountId === accountId) results.push(JSON.parse(JSON.stringify(v)));
       }
       return results;
+    },
+  },
+
+  providerConfigs: {
+    async put(key, value) { stores.providerConfigs.set(key, JSON.parse(JSON.stringify(value))); },
+    async get(key) { const v = stores.providerConfigs.get(key); return v ? JSON.parse(JSON.stringify(v)) : null; },
+    async delete(key) { stores.providerConfigs.delete(key); },
+    async findByAccountId(accountId) {
+      const results = [];
+      for (const [, v] of stores.providerConfigs) {
+        if (v.accountId === accountId) results.push(JSON.parse(JSON.stringify(v)));
+      }
+      return results;
+    },
+    async findByProvider(accountId, providerId) {
+      for (const [, v] of stores.providerConfigs) {
+        if (v.accountId === accountId && v.providerId === providerId) {
+          return JSON.parse(JSON.stringify(v));
+        }
+      }
+      return null;
     },
   },
 };
